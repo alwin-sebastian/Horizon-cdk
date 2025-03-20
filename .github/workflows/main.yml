@@ -1,0 +1,57 @@
+name: CDK Stack Deployment - PROD
+on:
+  workflow_dispatch:
+  # Uncomment to enable automatic deployment on push
+  # push:
+  #   paths:
+  #     - 'cdk/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-cdk-stack:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::209479268297:role/github-actions-aws-deploy
+          aws-region: ca-central-1  # Update to match your current region
+          
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          
+      - name: Install CDK and dependencies
+        run: |
+          npm install -g aws-cdk
+          npm install
+          
+      - name: Set up Python Lambda dependencies
+        run: |
+          cd lambda/file_processing  
+          pip install -r requirements.txt
+          
+      - name: Bootstrap CDK 
+        run: |
+          cdk bootstrap aws://209479268297/ca-central-1  
+          
+      - name: Deploy CDK Stack
+        run: |
+          cdk deploy --require-approval never  
+          
+      - name: Log Deployment Result
+        run: |
+          echo "CDK Stack deployment completed successfully"
