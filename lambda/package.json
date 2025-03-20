@@ -1,0 +1,11 @@
+{
+    "name": "startups-mentors-api",
+    "version": "1.0.0",
+    "description": "Lambda functions for startups and mentors API",
+    "type": "module",
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.767.0",
+        "@aws-sdk/lib-dynamodb": "^3.767.0",
+        "uuid": "^9.0.1"
+    }
+}
