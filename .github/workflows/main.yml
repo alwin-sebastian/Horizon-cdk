@@ -51,6 +51,9 @@ jobs:
       - name: Deploy CDK Stack
         run: |
           cdk deploy --require-approval never  
+        env:
+          CDK_DEFAULT_ACCOUNT: 209479268297
+          CDK_DEFAULT_REGION: ca-central-1
           
       - name: Log Deployment Result
         run: |
