@@ -44,9 +44,9 @@ jobs:
           cd lambda/file_processing  
           pip install -r requirements.txt
           
-      - name: Bootstrap CDK 
-        run: |
-          cdk bootstrap aws://209479268297/ca-central-1  
+      # - name: Bootstrap CDK 
+      #   run: |
+      #     cdk bootstrap aws://209479268297/ca-central-1  
           
       - name: Deploy CDK Stack
         run: |
