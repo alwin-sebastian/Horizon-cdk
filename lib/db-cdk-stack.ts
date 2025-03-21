@@ -89,7 +89,7 @@ export class DbCdkStack extends cdk.Stack {
       }),
       environment: {
         BUCKET_NAME: pitchDecksBucket.bucketName,
-        LLMSHERPA_API_URL: process.env.LLMSHERPA_API_URL || 'http://llmsherpa-service.AppMastery.local:5001/api/parseDocument?renderFormat=all',
+        LLMSHERPA_API_URL: process.env.LLMSHERPA_API_URL || 'http://10.0.4.162:5001/api/parseDocument?renderFormat=all',
       },
       vpc: vpc,
       vpcSubnets: {
