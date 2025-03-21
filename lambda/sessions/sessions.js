@@ -9,7 +9,7 @@ import {
   UpdateCommand,
   DeleteCommand
 } from "@aws-sdk/lib-dynamodb";
-import { v4 as uuidv4 } from 'uuid';
+// import { v4 as uuidv4 } from 'uuid';
 
 const client = new DynamoDBClient();
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -37,74 +37,75 @@ const getCurrentESTDateTime = () => {
  * Gets all sessions scheduled for today that haven't already happened
  */
 export const getTodaysSessions = async (event) => {
-  try {
-    const { dateString, timeString, date } = getCurrentESTDateTime();
-    
-    console.log(`Current EST date: ${dateString}, current EST time: ${timeString}`);
-    
-    // Start of today in EST
-    const todayStart = new Date(date);
-    todayStart.setHours(0, 0, 0, 0);
-    
-    // End of today in EST
-    const todayEnd = new Date(date);
-    todayEnd.setHours(23, 59, 59, 999);
-    
-    // Convert to ISO strings
-    const todayStartISO = todayStart.toISOString();
-    const todayEndISO = todayEnd.toISOString();
-    const nowISO = date.toISOString();
-    
-    console.log(`Query range: ${todayStartISO} to ${todayEndISO}, current time: ${nowISO}`);
-    
-    // Query for sessions today using the GSI
-    const params = {
-      TableName: TABLE_NAME,
-      IndexName: 'SessionDateTimeIndex',
-      KeyConditionExpression: 'session_date_time BETWEEN :todayStart AND :todayEnd',
-      ExpressionAttributeValues: {
-        ':todayStart': todayStartISO,
-        ':todayEnd': todayEndISO
-      }
-    };
-    
-    const result = await ddbDocClient.send(new QueryCommand(params));
-    const Items = result.Items || [];
-    
-    // Filter out sessions that have already happened today
-    const upcomingSessions = Items.filter(session => {
-      return session.session_date_time >= nowISO;
-    });
-    
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({
-        sessions: upcomingSessions,
-        count: upcomingSessions.length,
-        message: 'Successfully retrieved today\'s upcoming sessions'
-      })
-    };
-  } catch (error) {
-    console.error('Error retrieving sessions:', error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ 
-        sessions: [],
-        count: 0,
-        message: 'Error retrieving today\'s sessions',
-        error: error.message
-      })
-    };
-  }
-};
+    try {
+      const { dateString, timeString, date } = getCurrentESTDateTime();
+      
+      console.log(`Current EST date: ${dateString}, current EST time: ${timeString}`);
+      
+      // Start of today in EST
+      const todayStart = new Date(date);
+      todayStart.setHours(0, 0, 0, 0);
+      
+      // End of today in EST
+      const todayEnd = new Date(date);
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      // Convert to ISO strings
+      const todayStartISO = todayStart.toISOString();
+      const todayEndISO = todayEnd.toISOString();
+      const nowISO = date.toISOString();
+      
+      // Get just the date part for the begins_with operation
+      const todayDatePart = todayStartISO.split('T')[0];
+      
+      console.log(`Query for date starting with: ${todayDatePart}, current time: ${nowISO}`);
+      
+      // Use a scan operation with a filter expression since we can't use BETWEEN on the partition key
+      const params = {
+        TableName: TABLE_NAME,
+        FilterExpression: 'begins_with(session_date_time, :todayDate)',
+        ExpressionAttributeValues: {
+          ':todayDate': todayDatePart
+        }
+      };
+      
+      const result = await ddbDocClient.send(new ScanCommand(params));
+      const Items = result.Items || [];
+      
+      // Filter out sessions that have already happened today
+      const upcomingSessions = Items.filter(session => {
+        return session.session_date_time >= nowISO;
+      });
+      
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          sessions: upcomingSessions,
+          count: upcomingSessions.length,
+          message: 'Successfully retrieved today\'s upcoming sessions'
+        })
+      };
+    } catch (error) {
+      console.error('Error retrieving sessions:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          sessions: [],
+          count: 0,
+          message: 'Error retrieving today\'s sessions',
+          error: error.message
+        })
+      };
+    }
+  };
 
 /**
  * Gets all sessions (optionally filtered by status, mentor_id, or date range)
@@ -120,23 +121,22 @@ export const getAllSessions = async (event) => {
     
     // If filtering by date range, use a query instead of scan
     if (queryParams.start_date && queryParams.end_date) {
-      // Convert date strings to ISO format
-      const startDate = new Date(`${queryParams.start_date}T00:00:00-05:00`).toISOString();
-      const endDate = new Date(`${queryParams.end_date}T23:59:59-05:00`).toISOString();
-      
-      // Query using the date_time index
-      params = {
-        TableName: TABLE_NAME,
-        IndexName: 'SessionDateTimeIndex',
-        KeyConditionExpression: 'session_date_time BETWEEN :startDate AND :endDate',
-        ExpressionAttributeValues: {
-          ':startDate': startDate,
-          ':endDate': endDate
-        }
-      };
-      
-      const result = await ddbDocClient.send(new QueryCommand(params));
-      const Items = result.Items || [];
+        // Convert date strings to ISO format
+        const startDate = new Date(`${queryParams.start_date}T00:00:00-05:00`).toISOString();
+        const endDate = new Date(`${queryParams.end_date}T23:59:59-05:00`).toISOString();
+        
+        // Use scan with filter expression instead of query with key condition
+        params = {
+          TableName: TABLE_NAME,
+          FilterExpression: 'session_date_time BETWEEN :startDate AND :endDate',
+          ExpressionAttributeValues: {
+            ':startDate': startDate,
+            ':endDate': endDate
+          }
+        };
+        
+        const result = await ddbDocClient.send(new ScanCommand(params));
+        const Items = result.Items || [];
       
       // Apply additional filters (if any)
       let filteredItems = Items;
@@ -301,7 +301,7 @@ export const createSession = async (event) => {
     }
     
     // Generate a unique ID if not provided
-    const sessionId = requestBody.session_id || uuidv4();
+    const sessionId = requestBody.session_id;
     
     // Validate date_time format
     let sessionDateTime;

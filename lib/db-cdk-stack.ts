@@ -108,8 +108,9 @@ export class DbCdkStack extends cdk.Stack {
     });
     
     sessionsTable.addGlobalSecondaryIndex({
-      indexName: 'SessionDateTimeIndex',
-      partitionKey: { name: 'session_date_time', type: dynamodb.AttributeType.STRING },
+      indexName: 'DateTimeIndex',
+      partitionKey: { name: 'date_partition', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'session_date_time', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL
     });
 
