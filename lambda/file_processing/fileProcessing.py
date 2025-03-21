@@ -16,7 +16,7 @@ BUCKET_NAME = os.environ.get('BUCKET_NAME', 'tbdc-pitchdecks')
 
 def process_file(file_url, file_type):
     try:
-        logger.info("(LLM SHERPA) Processing file...")
+        logger.info(f"(LLM SHERPA) Processing file from URL: {file_url}")
         loader = LLMSherpaFileLoader(
             file_path=file_url,
             llmsherpa_api_url=os.environ.get("LLMSHERPA_API_URL"),

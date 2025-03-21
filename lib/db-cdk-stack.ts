@@ -75,7 +75,7 @@ export class DbCdkStack extends cdk.Stack {
 
     const uploadFunction = new lambda.Function(this, 'UploadFunction', {
       runtime: lambda.Runtime.PYTHON_3_9,
-      handler: 'upload_file.lambda_handler',
+      handler: 'fileProcessing.lambda_handler',
       code: lambda.Code.fromAsset('lambda/file_processing', {
         bundling: {
           image: lambda.Runtime.PYTHON_3_9.bundlingImage,
