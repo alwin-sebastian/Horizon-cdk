@@ -47,7 +47,7 @@ export class DbCdkStack extends cdk.Stack {
 
 
     const pitchDecksBucket = new s3.Bucket(this, 'PitchDecksBucket', {
-      bucketName: 'tbdc-pitchdecks',
+      bucketName: 'tbdc-pitch-decks',
       removalPolicy: cdk.RemovalPolicy.RETAIN, 
       cors: [
         {
