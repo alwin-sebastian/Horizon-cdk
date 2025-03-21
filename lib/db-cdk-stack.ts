@@ -116,7 +116,7 @@ export class DbCdkStack extends cdk.Stack {
     const getSessionsFunction = new lambda.Function(this, 'GetSessionsFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'sessions.getTodaysSessions',
-      code: lambda.Code.fromAsset('lambda'),
+      code: lambda.Code.fromAsset('lambda/sessions'),
       environment: {
         SESSIONS_TABLE_NAME: sessionsTable.tableName,
       },
