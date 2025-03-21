@@ -102,6 +102,28 @@ export class DbCdkStack extends cdk.Stack {
     
     pitchDecksBucket.grantReadWrite(uploadFunction);
 
+    const sessionsTable = new dynamodb.Table(this, 'SessionsTable', {
+      tableName: 'sessions',
+      partitionKey: { name: 'session_id', type: dynamodb.AttributeType.STRING },
+    });
+    
+    sessionsTable.addGlobalSecondaryIndex({
+      indexName: 'SessionDateTimeIndex',
+      partitionKey: { name: 'session_date_time', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL
+    });
+
+    const getSessionsFunction = new lambda.Function(this, 'GetSessionsFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'sessions.getTodaysSessions',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        SESSIONS_TABLE_NAME: sessionsTable.tableName,
+      },
+    });
+
+    sessionsTable.grantReadData(getSessionsFunction);
+
     const api = new apigateway.RestApi(this, 'StartupsApi', {
       restApiName: 'Startups and Mentors API',
       description: 'API to interact with Startups and Mentors',
@@ -131,6 +153,24 @@ export class DbCdkStack extends cdk.Stack {
 
     const uploadsResource = api.root.addResource('uploads');
     uploadsResource.addMethod('POST', new apigateway.LambdaIntegration(uploadFunction));
+
+    const sessionsResource = api.root.addResource('sessions');
+
+    // GET /sessions - Get all sessions
+    sessionsResource.addMethod('GET', new apigateway.LambdaIntegration(getSessionsFunction));
+
+    // POST /sessions - Create a new session
+    sessionsResource.addMethod('POST', new apigateway.LambdaIntegration(getSessionsFunction));
+
+    // GET /sessions/today - Get today's upcoming sessions
+    const todayResource = sessionsResource.addResource('today');
+    todayResource.addMethod('GET', new apigateway.LambdaIntegration(getSessionsFunction));
+
+    // GET/PUT/DELETE /sessions/{session_id} - Get, update, delete a specific session
+    const sessionResource = sessionsResource.addResource('{session_id}');
+    sessionResource.addMethod('GET', new apigateway.LambdaIntegration(getSessionsFunction));
+    sessionResource.addMethod('PUT', new apigateway.LambdaIntegration(getSessionsFunction));
+    sessionResource.addMethod('DELETE', new apigateway.LambdaIntegration(getSessionsFunction));
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,
