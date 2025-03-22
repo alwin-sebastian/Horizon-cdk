@@ -12,6 +12,57 @@ export class DbCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const userPoolId = "ca-central-1_zGIpyDreL";
+    const userPoolClientId = "3a5nhddh2l6mdudm3dq34elmq0";
+
+
+    const signupLambda = new lambda.Function(this, 'HorizonSignupLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'signup.handler',
+      code: lambda.Code.fromAsset('lambda/signup'),
+      environment: {
+          USER_POOL_ID: userPoolId,
+          USER_POOL_CLIENT_ID: userPoolClientId,
+      },
+  });
+
+  signupLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+          'cognito-idp:AdminCreateUser',
+          'cognito-idp:AdminGetUser',
+          'cognito-idp:AdminInitiateAuth',
+          'cognito-idp:AdminRespondToAuthChallenge',
+          'cognito-idp:ResendConfirmationCode',
+          'cognito-idp:ConfirmSignUp'
+      ],
+      resources: [`arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${userPoolId}`],
+  }));
+
+  const defineAuthChallenge = new lambda.Function(this, 'HorizonDefineAuthChallenge', {
+    runtime: lambda.Runtime.NODEJS_18_X,
+    handler: 'index.handler',
+    code: lambda.Code.fromAsset('lambda/signup/defineAuthChallenge'),
+    environment: {
+    },
+});
+
+const createAuthChallenge = new lambda.Function(this, 'HorizonCreateAuthChallenge', {
+  runtime: lambda.Runtime.NODEJS_18_X,
+  handler: 'index.handler',
+  code: lambda.Code.fromAsset('lambda/signup/createAuthChallenge'),
+  environment: {
+  },
+});
+
+const verifyAuthChallenge = new lambda.Function(this, 'HorizonVerifyAuthChallenge', {
+  runtime: lambda.Runtime.NODEJS_18_X,
+  handler: 'index.handler',
+  code: lambda.Code.fromAsset('lambda/signup/verifyAuthChallenge'),
+  environment: {
+  },
+});
+
+
     // Create DynamoDB table - Startups
     const startupsTable = new dynamodb.Table(this, 'StartupsTable', {
       tableName: 'horizon-startups',
@@ -116,7 +167,7 @@ export class DbCdkStack extends cdk.Stack {
 
     const getSessionsFunction = new lambda.Function(this, 'GetSessionsFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'sessions.getTodaysSessions',
+      handler: 'sessions.handler',
       code: lambda.Code.fromAsset('lambda/sessions'),
       environment: {
         SESSIONS_TABLE_NAME: sessionsTable.tableName,
