@@ -185,6 +185,12 @@ const verifyAuthChallenge = new lambda.Function(this, 'HorizonVerifyAuthChalleng
       },
     });
 
+    const signupResource = api.root.addResource('signup');
+    signupResource.addMethod('POST', new apigateway.LambdaIntegration(signupLambda));
+
+    const confirmResource = api.root.addResource('confirm');
+    confirmResource.addMethod('POST', new apigateway.LambdaIntegration(signupLambda));
+
     const startupsResource = api.root.addResource('startups');
     startupsResource.addMethod('GET', new apigateway.LambdaIntegration(startupsFunction));
     startupsResource.addMethod('POST', new apigateway.LambdaIntegration(startupsFunction));
